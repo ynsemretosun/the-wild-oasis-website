@@ -8,6 +8,12 @@ const nextConfig = {
         pathname: "/storage/v1/object/public/cabin-images/**",
         search: "",
       },
+      {
+        protocol: "https",
+        hostname: "flagcdn.com",
+        pathname: "/w320/**",
+        search: "",
+      },
     ],
   },
 };
