@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { auth, signIn, signOut } from "./auth";
-import { updateGuest } from "./data-service";
+import { getBookings, updateGuest } from "./data-service";
 import { supabase } from "./supabase";
+import { redirect } from "next/navigation";
 
 export async function updateProfile(formData) {
   const session = await auth();
@@ -26,6 +27,61 @@ export async function updateProfile(formData) {
     throw new Error("Guest could not be updated");
   }
   revalidatePath("/account/profile");
+}
+
+export const deleteReservation = async (reservationId) => {
+  const session = await auth();
+  if (!session) {
+    throw new Error("You must be logged in to delete a reservation.");
+  }
+
+  const reservations = await getBookings(session.user.guestId);
+  const reservationIds = reservations.map((reservation) => reservation.id);
+
+  if (!reservationIds.includes(reservationId)) {
+    throw new Error("You don't have permission to delete this reservation.");
+  }
+
+  const { error } = await supabase
+    .from("bookings")
+    .delete()
+    .eq("id", reservationId);
+
+  if (error) {
+    console.log(error);
+    throw new Error("Reservation could not be deleted");
+  }
+  revalidatePath("/account/reservations");
+};
+
+export async function updateReservation(formData) {
+  const session = await auth();
+  if (!session) {
+    throw new Error("You must be logged in to update a reservation.");
+  }
+  const reservationId = parseInt(formData.get("reservationId"));
+  const reservations = await getBookings(session.user.guestId);
+  const reservationIds = reservations.map((reservation) => reservation.id);
+
+  if (!reservationIds.includes(reservationId)) {
+    throw new Error("You don't have permission to update this reservation.");
+  }
+
+  const updateData = {
+    numGuests: formData.get("numGuests"),
+    observations: formData.get("observations").slice(0, 1000),
+  };
+  const { error } = await supabase
+    .from("bookings")
+    .update(updateData)
+    .eq("id", reservationId);
+
+  if (error) {
+    throw new Error("Reservation could not be updated");
+  }
+  revalidatePath(`/account/reservations/edit/${reservationId}`);
+  revalidatePath("/account/reservations");
+  redirect("/account/reservations");
 }
 
 export async function signInAction() {
