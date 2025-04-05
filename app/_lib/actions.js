@@ -6,6 +6,33 @@ import { getBookings, updateGuest } from "./data-service";
 import { supabase } from "./supabase";
 import { redirect } from "next/navigation";
 
+//if we use bind, the first argument will be the bookingData object which is passed to the action function
+export async function createReservation(reservationData, formData) {
+  const session = await auth();
+  if (!session) {
+    throw new Error("You must be logged in to create a reservation.");
+  }
+  const newBooking = {
+    ...reservationData,
+    guestId: session.user.guestId,
+    numGuests: Number(formData.get("numGuests")),
+    observations: formData.get("observations").slice(0, 1000),
+    extrasPrice: 0,
+    totalPrice: reservationData.cabinPrice,
+    hasBreakfast: false,
+    isPaid: false,
+    status: "unconfirmed",
+  };
+  const { error } = await supabase.from("bookings").insert([newBooking]);
+
+  if (error) {
+    throw new Error("Booking could not be created");
+  }
+  revalidatePath("/account/reservations");
+  revalidatePath(`/cabins/${reservationData.cabinId}`);
+  redirect("/cabins/thankyou");
+}
+
 export async function updateProfile(formData) {
   const session = await auth();
   if (!session) {

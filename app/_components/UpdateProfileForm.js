@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { updateProfile } from "../_lib/actions";
-import SubmitButton from "./UpdateButton";
+import SubmitButton from "./ActionButton";
 
 function UpdateProfileForm({ children, guest }) {
   const { fullName, email, nationalID, nationality, countryFlag } = guest;
